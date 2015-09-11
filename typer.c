@@ -101,15 +101,16 @@ int init_hands(struct hands * h, uint8_t num_fingers) {
  *
  * Arguments: buffer - single line to process
  *            h - data collected goes in this struct
- *            num - specifies the line number starting at 0
+ *            num - specifies the line number starting at -1
  * Returns: 0 for success and -1 otherwise.
  */
-int process(char * buffer, struct hands * h, uint8_t num) {
+int process(char * buffer, struct hands * h, int num) {
         char * end, * str = buffer;
         uint8_t temp, i, sum = 0;
 
         str = skip_white(str);
-        if (num == 0) {
+
+        if (num == -1) {
                 temp = strtol(str, &end, 10);
                 if (str == end) {
                         return -1;
@@ -117,30 +118,31 @@ int process(char * buffer, struct hands * h, uint8_t num) {
                 init_hands(h, temp);
                 return 0;
         }
-        switch((num-1)%3) {
+
+        switch(num%3) {
         case 0:
-                h->weights[(num-1)/3] = strtol(str, &end, 10);
+                h->weights[num/3] = strtol(str, &end, 10);
                 if (str == end) {
                         return -1;
                 }
                 break;
         case 1:
-                h->fingers[(num-1)/3].keys = calloc(NUM_KEYS, sizeof(char));
-                h->fingers[(num-1)/3].num = populate_char(str, h->fingers[(num-1)/3].keys);
-                if (h->fingers[(num-1)/3].num < 0) {
+                h->fingers[num/3].keys = calloc(NUM_KEYS, sizeof(char));
+                h->fingers[num/3].num = populate_char(str, h->fingers[num/3].keys);
+                if (h->fingers[num/3].num < 0) {
                         return -1;
                 }
                 break;
         case 2:
-                h->fingers[(num-1)/3].weights = calloc(NUM_KEYS, sizeof(uint8_t));
-                temp = populate_int(str, h->fingers[(num-1)/3].weights);
-                if (temp < 0 || temp != h->fingers[(num-1)/3].num) {
+                h->fingers[num/3].weights = calloc(NUM_KEYS, sizeof(uint8_t));
+                temp = populate_int(str, h->fingers[num/3].weights);
+                if (temp < 0 || temp != h->fingers[num/3].num) {
                         return -1;
                 }
                 for (i = 0; i < temp; i++) {
-                        sum += h->fingers[(num-1)/3].weights[i];
+                        sum += h->fingers[num/3].weights[i];
                 }
-                h->fingers[(num-1)/3].total = sum;
+                h->fingers[num/3].total = sum;
                 break;
         default:
                 break;
@@ -157,11 +159,11 @@ int process(char * buffer, struct hands * h, uint8_t num) {
 int setup_hands(struct hands * h) {
         FILE * f = fopen("example.txt", "r");
         char buffer[1000];
-        uint8_t i, num = 0;
+        int i, num = -1;
 
         if (f == NULL) {
-                return -1;
-        }
+		return -1;
+	}
 
         while(fgets(buffer, 1000, f) != NULL) {
                 buffer[strcspn(buffer, "\n")] = '\0';
