@@ -84,8 +84,13 @@ int init_hands(struct hands * h, uint8_t num_fingers) {
         h->num = num_fingers;
         h->total = 0;
         h->fingers = calloc(num_fingers, sizeof(struct finger));
+	if (h->fingers == NULL) {
+		return -1;
+	}
         h->weights = calloc(num_fingers, sizeof(uint8_t));
-
+	if (h->weights == NULL) {
+		return -1;
+	}
 	return 0;
 }
 
@@ -115,7 +120,9 @@ int process(char * buffer, struct hands * h, int num) {
                 if (str == end) {
                         return -1;
                 }
-                init_hands(h, temp);
+                if (init_hands(h, temp)) {
+			return -1;
+		}
                 return 0;
         }
 
@@ -128,6 +135,9 @@ int process(char * buffer, struct hands * h, int num) {
                 break;
         case 1:
                 h->fingers[num/3].keys = calloc(NUM_KEYS, sizeof(char));
+		if (h->fingers[num/3].keys == NULL) {
+			return -1;
+		}
                 h->fingers[num/3].num = populate_char(str, h->fingers[num/3].keys);
                 if (h->fingers[num/3].num < 0) {
                         return -1;
@@ -135,6 +145,9 @@ int process(char * buffer, struct hands * h, int num) {
                 break;
         case 2:
                 h->fingers[num/3].weights = calloc(NUM_KEYS, sizeof(uint8_t));
+		if (h->fingers[num/3].weights == NULL) {
+			return -1;
+		}
                 temp = populate_int(str, h->fingers[num/3].weights);
                 if (temp < 0 || temp != h->fingers[num/3].num) {
                         return -1;
@@ -237,7 +250,10 @@ int main(int argc, char ** argv)
         struct hands data;
         char buffer[6];
         uint16_t i;
-        setup_hands(&data);
+        if (setup_hands(&data)) {
+		printf("Reading error!\n");
+		return 1;
+	}
 
         /* do 11 tests. */
         for (i = 0; i < 11; i++) {
