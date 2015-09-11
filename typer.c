@@ -63,24 +63,42 @@ void setup_hand(struct hand_data * data) {
 }
 /* ========================================================================= */
 
+int weighted_rand(uint8_t * data, uint8_t max) {
+        int16_t num = -1, i = rand() % max + 1;
+        while (i > 0) {
+                num++;
+                i -= data[num];
+        }
+        return num;
+}
+
+
 /* generator
- * Currently just chooses a finger. In the future it will pick a finger, a
- * number of keys and the keys themselves.
- * Arguments: buffer - not used yet
+ * Generates a random sequence. The sequence will all be on the same finger, of a
+ * random length between 2 and 5. and taking into account the respective weights
+ * of keys and fingers.
+ * Arguments: buffer - Sequence will return here. Minimum length of 6.
  *            data - Contains the information of keys and weights.
- * Returns int - the finger that was chosen (will be void in the future)
+ * Returns: None
  */
-uint8_t generator(char * buffer, struct hand_data * data)
+void generator(char * buffer, struct hand_data * data)
 {
         int16_t i;
-        uint8_t finger = -1;
+        uint8_t finger = -1, key, num;
         // Chose finger
-        i = rand() % data->finger_weight_total + 1;
-        while (i > 0) {
-                finger++;
-                i -= data->finger_weights[finger];
+        finger = weighted_rand(data->finger_weights, data->finger_weight_total);
+
+        // Choose a number of keys
+        num = rand() % 4 + 2;
+       
+        // Choose some keys
+        for (i = 0; i < num; i++) {
+                key = weighted_rand(data->weights[finger],
+                                    data->weights_total[finger]);
+                buffer[i] = data->groups[finger][key];
         }
-        return finger;
+        buffer[i] = '\0';
+        return;
 }
 
 /* main
@@ -90,19 +108,14 @@ uint8_t generator(char * buffer, struct hand_data * data)
 int main(int argc, char ** argv)
 {
         struct hand_data data;
-        char * buffer;
-        uint16_t test[] = {0, 0, 0, 0, 0, 0, 0, 0};
+        char buffer[6];
         uint16_t i;
         setup_hand(&data);
 
-        /* do 1100 tests. We exect around 100 for each weighting score on each
-         * finger */      
-        for (i = 0; i < 1100; i++) {
-                test[generator(buffer, &data)] += 1;
-        }
-
-        for (i = 0; i < 8; i++) {
-                printf(" %03u", test[i]);
+        /* do 11 tests. */ 
+        for (i = 0; i < 11; i++) {
+                generator(buffer, &data);
+                printf("%s ", buffer);
         }
         printf("\n");
 
