@@ -2,66 +2,138 @@
 #include<stdint.h>
 #include<stdlib.h>
 #include<string.h>
+#include<unistd.h>
+
+#define NUM_KEYS 32
 
 
-/* ============= This stuff all has to go eventually =========== */
-char * groups[] = {
-        "qaz1!QAZ",
-        "wsx2@WSX",
-        "edc3#EDC",
-        "rfvtgb45$%RFVTGB",
-        "yhnujm67^&YHNUJM",
-        "ik,8*IK<",
-        "ol.9(OL>",
-        "p;/0-=)_+P:?{}[]\"'\\|"
+struct finger {
+        char * keys;
+        uint8_t * weights;
+        uint8_t total;
+        uint8_t num;
 };
 
-uint8_t * weights[8];
-uint8_t weights0[] = {10, 10, 10, 5, 3, 3, 3, 3};
-uint8_t weights1[] = {10, 10, 10, 5, 3, 3, 3, 3};
-uint8_t weights2[] = {10, 10, 10, 5, 3, 3, 3, 3};
-uint8_t weights3[] = {10, 10, 10, 10, 10, 10, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3};
-uint8_t weights4[] = {10, 10, 10, 10, 10, 10, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3};
-uint8_t weights5[] = {10, 10, 10, 5, 3, 3, 3, 3};
-uint8_t weights6[] = {10, 10, 10, 5, 10, 3, 3, 3};
-uint8_t weights7[] = {10, 10, 5, 5, 8, 8, 10, 8, 8, 3, 3, 3, 8, 8, 8, 8, 5, 5, 1, 1};
 
-uint8_t finger_weights[] = {1, 1, 1, 2, 2, 1, 1, 2};
-
-uint8_t weights_total[] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-struct hand_data {
-        char ** groups;
-        uint8_t ** weights;
-        uint8_t * finger_weights;
-        uint8_t * weights_total;
-        uint8_t finger_weight_total;
+struct hands {
+        struct finger * fingers;
+        uint8_t * weights;
+        uint8_t total;
+        uint8_t num;
 };
 
-void setup_hand(struct hand_data * data) {
-        uint8_t i, j;
-
-        data->groups = groups;
-        data->weights = weights;
-        data->weights[0] = weights0;
-        data->weights[1] = weights1;
-        data->weights[2] = weights2;
-        data->weights[3] = weights3;
-        data->weights[4] = weights4;
-        data->weights[5] = weights5;
-        data->weights[6] = weights6;
-        data->weights[7] = weights7;
-        data->weights_total = weights_total;
-        data->finger_weights = finger_weights;
-        data->finger_weight_total = 0;
-        for (i = 0; i < 8; i++) {
-                for (j = 0; j < strlen(groups[i]); j++) {
-                        data->weights_total[i] += weights[i][j];
-                }
-                data->finger_weight_total += finger_weights[i];
+char * skip_white(char * buf)
+{
+        while (buf[0] == ' ' || buf[0] == '\t') {
+                buf++;
         }
+        return buf;
 }
-/* ========================================================================= */
+
+int populate_int(char * str, uint8_t * data) {
+        uint16_t i = 0;
+        char * end;
+        while (*str != '\0') {
+                data[i] = strtol(str, &end, 10);
+                if (str == end) {
+                        return -1;
+                }
+                str = skip_white(end);
+                i++;
+        }
+        return i;
+}
+
+int populate_char(char * str, char * data) {
+        uint16_t i = 0;
+        while (*str != '\0') {
+                data[i] = *str;
+                str = skip_white(str+1);
+                i++;
+        }
+        return i;
+}
+
+int init_hands(struct hands * h, uint8_t num_fingers) {
+        h->num = num_fingers;
+        h->total = 0;
+        h->fingers = calloc(num_fingers, sizeof(struct finger));
+        h->weights = calloc(num_fingers, sizeof(uint8_t));
+}
+
+int process(char * buffer, struct hands * h, uint8_t num) {
+        char * end, * str = buffer;
+        uint8_t temp, i, sum = 0;
+
+        str = skip_white(str);
+        if (num == 0) {
+                temp = strtol(str, &end, 10);
+                if (str == end) {
+                        return -1;
+                }
+                init_hands(h, temp);
+                return 0;
+        }
+        switch((num-1)%3) {
+        case 0:
+                h->weights[(num-1)/3] = strtol(str, &end, 10);
+                if (str == end) {
+                        return -1;
+                }
+                break;
+        case 1:
+                h->fingers[(num-1)/3].keys = calloc(NUM_KEYS, sizeof(char));
+                h->fingers[(num-1)/3].num = populate_char(str, h->fingers[(num-1)/3].keys);
+                if (h->fingers[(num-1)/3].num < 0) {
+                        return -1;
+                }
+                break;
+        case 2:
+                h->fingers[(num-1)/3].weights = calloc(NUM_KEYS, sizeof(uint8_t));
+                temp = populate_int(str, h->fingers[(num-1)/3].weights);
+                if (temp < 0 || temp != h->fingers[(num-1)/3].num) {
+                        return -1;
+                }
+                for (i = 0; i < temp; i++) {
+                        sum += h->fingers[(num-1)/3].weights[i];
+                }
+                h->fingers[(num-1)/3].total = sum;
+                break;
+        default:
+                break;
+        }
+        return 0;
+}
+
+int setup_hands(struct hands * h) {
+        FILE * f = fopen("example.txt", "r");
+        char buffer[1000];
+        uint8_t i, num = 0;
+
+        if (f == NULL) {
+                return -1;
+        }
+
+        while(fgets(buffer, 1000, f) != NULL) {
+                buffer[strcspn(buffer, "\n")] = '\0';
+                if (buffer[0] == '\0') {
+                        continue;
+                }
+                if (process(buffer, h, num) < 0) {
+                       return -1;
+                }
+                num++;
+        }
+
+        for (i = 0; i < h->num; i++) {
+                h->total += h->weights[i];
+        }
+
+        return 0;
+}
+
+
+
 
 int weighted_rand(uint8_t * data, uint8_t max) {
         int16_t num = -1, i = rand() % max + 1;
@@ -81,21 +153,21 @@ int weighted_rand(uint8_t * data, uint8_t max) {
  *            data - Contains the information of keys and weights.
  * Returns: None
  */
-void generator(char * buffer, struct hand_data * data)
+void generator(char * buffer, struct hands * h)
 {
         int16_t i;
         uint8_t finger = -1, key, num;
         // Chose finger
-        finger = weighted_rand(data->finger_weights, data->finger_weight_total);
+        finger = weighted_rand(h->weights, h->total);
 
         // Choose a number of keys
         num = rand() % 4 + 2;
-       
+
         // Choose some keys
         for (i = 0; i < num; i++) {
-                key = weighted_rand(data->weights[finger],
-                                    data->weights_total[finger]);
-                buffer[i] = data->groups[finger][key];
+                key = weighted_rand(h->fingers[finger].weights,
+                                    h->fingers[finger].total);
+                buffer[i] = h->fingers[finger].keys[key];
         }
         buffer[i] = '\0';
         return;
@@ -107,12 +179,12 @@ void generator(char * buffer, struct hand_data * data)
  */
 int main(int argc, char ** argv)
 {
-        struct hand_data data;
+        struct hands data;
         char buffer[6];
         uint16_t i;
-        setup_hand(&data);
+        setup_hands(&data);
 
-        /* do 11 tests. */ 
+        /* do 11 tests. */
         for (i = 0; i < 11; i++) {
                 generator(buffer, &data);
                 printf("%s ", buffer);
