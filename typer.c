@@ -23,7 +23,6 @@
 #include<stdint.h>
 #include<stdlib.h>
 #include<string.h>
-#include<unistd.h>
 
 /* Defines the keys and weights for a signle finger num defines the number of
  * chracters on the key and total defines the total of the weights to save
@@ -61,20 +60,23 @@ char * skip_white(char * buf)
 /* Populates a list of intergers from a space seperated string.
  * Note: May be seperated by any number of spaces.
  * Arguments: str - Space seperated string of intergers
- *            data - array to store in. !Must be large enough!
+ *            data - array to store in of at least size num.
+              num - number of characters to copy.
  * Returns: The number copied on success or -1 on failure.
  */
 int populate_int(char * str, uint8_t * data, uint8_t num) {
         uint16_t i = 0;
         char * end;
+        long temp;
         while (*str != '\0') {
                 if (i >= num) {
                         break;
                 }
-                data[i] = strtol(str, &end, 10);
-                if (str == end) {
+                temp = strtol(str, &end, 10);
+                if (str == end || temp > 255 || temp < 0) {
                         return -1;
                 }
+                data[i] = temp;
                 str = skip_white(end);
                 i++;
         }
@@ -84,7 +86,8 @@ int populate_int(char * str, uint8_t * data, uint8_t num) {
 /* Populates a list of characters from a space seperated string.
  * Note: May be seperated by any number of spaces.
  * Arguments: str - space seperated string of characters.
- *            data - array to store in. !Must be large enough!
+ *            data - array to store in of at least size num.
+              num - number of characters to copy.
  * Returns: The number copied on success or -1 on failure.
  */
 int populate_char(char * str, char * data, uint8_t num) {
@@ -136,16 +139,17 @@ int init_hands(struct hands * h, uint8_t num_fingers) {
  */
 int process(char * buffer, struct hands * h, int num) {
         char * end, * str = buffer;
-        uint8_t temp, i, sum = 0;
+        uint8_t num_copied, num_fingers, i, sum = 0;
+        long size;
 
         str = skip_white(str);
 
         if (num == -1) {
-                temp = strtol(str, &end, 10);
-                if (str == end) {
+                size = strtol(str, &end, 10);
+                if (str == end || size > 255 || size < 0) {
                         return -1;
                 }
-                if (init_hands(h, temp)) {
+                if (init_hands(h, size)) {
 			return -1;
 		}
                 return 0;
@@ -153,23 +157,25 @@ int process(char * buffer, struct hands * h, int num) {
 
         switch(num%3) {
         case 0:
-                h->weights[num/3] = strtol(str, &end, 10);
-                if (str == end) {
+                size = strtol(str, &end, 10);
+                if (str == end || size > 255 || size < 0) {
                         return -1;
                 }
+                h->weights[num/3] = size;
                 break;
         case 1:
-                h->fingers[num/3].num = strtol(str, &end, 10);
-                if (str == end) {
+                size = strtol(str, &end, 10);
+                if (str == end || size > 255 || size < 0) {
                         return -1;
                 }
+                h->fingers[num/3].num = size;
                 str = skip_white(end);
 
                 h->fingers[num/3].keys = calloc(h->fingers[num/3].num, sizeof(char));
 		if (h->fingers[num/3].keys == NULL) {
 			return -1;
 		}
-                populate_char(str, h->fingers[num/3].keys,
+                h->fingers[num/3].num = populate_char(str, h->fingers[num/3].keys,
                                 h->fingers[num/3].num);
                 if (h->fingers[num/3].num < 0) {
                         return -1;
@@ -180,8 +186,11 @@ int process(char * buffer, struct hands * h, int num) {
 		if (h->fingers[num/3].weights == NULL) {
 			return -1;
 		}
-                temp = populate_int(str, h->fingers[num/3].weights, h->fingers[num/3].num);
-                for (i = 0; i < temp; i++) {
+                num_copied = populate_int(str, h->fingers[num/3].weights, h->fingers[num/3].num);
+                if (num_copied != h->fingers[num/3].num) {
+                        return -1;
+                }
+                for (i = 0; i < num_copied; i++) {
                         sum += h->fingers[num/3].weights[i];
                 }
                 h->fingers[num/3].total = sum;
@@ -221,6 +230,9 @@ int setup_hands(struct hands * h) {
                        return -1;
                 }
                 num++;
+        }
+        if ((num+1)/3 != h->num) {
+                return -1;
         }
 
         for (i = 0; i < h->num; i++) {
