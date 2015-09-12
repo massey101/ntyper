@@ -25,8 +25,6 @@
 #include<string.h>
 #include<unistd.h>
 
-#define NUM_KEYS 32
-
 /* Defines the keys and weights for a signle finger num defines the number of
  * chracters on the key and total defines the total of the weights to save
  * calculating it every time.
@@ -66,10 +64,13 @@ char * skip_white(char * buf)
  *            data - array to store in. !Must be large enough!
  * Returns: The number copied on success or -1 on failure.
  */
-int populate_int(char * str, uint8_t * data) {
+int populate_int(char * str, uint8_t * data, uint8_t num) {
         uint16_t i = 0;
         char * end;
         while (*str != '\0') {
+                if (i >= num) {
+                        break;
+                }
                 data[i] = strtol(str, &end, 10);
                 if (str == end) {
                         return -1;
@@ -86,9 +87,12 @@ int populate_int(char * str, uint8_t * data) {
  *            data - array to store in. !Must be large enough!
  * Returns: The number copied on success or -1 on failure.
  */
-int populate_char(char * str, char * data) {
+int populate_char(char * str, char * data, uint8_t num) {
         uint16_t i = 0;
         while (*str != '\0') {
+                if (i >= num) {
+                        break;
+                }
                 data[i] = *str;
                 str = skip_white(str+1);
                 i++;
@@ -155,24 +159,28 @@ int process(char * buffer, struct hands * h, int num) {
                 }
                 break;
         case 1:
-                h->fingers[num/3].keys = calloc(NUM_KEYS, sizeof(char));
+                h->fingers[num/3].num = strtol(str, &end, 10);
+                if (str == end) {
+                        return -1;
+                }
+                str = skip_white(end);
+
+                h->fingers[num/3].keys = calloc(h->fingers[num/3].num, sizeof(char));
 		if (h->fingers[num/3].keys == NULL) {
 			return -1;
 		}
-                h->fingers[num/3].num = populate_char(str, h->fingers[num/3].keys);
+                populate_char(str, h->fingers[num/3].keys,
+                                h->fingers[num/3].num);
                 if (h->fingers[num/3].num < 0) {
                         return -1;
                 }
                 break;
         case 2:
-                h->fingers[num/3].weights = calloc(NUM_KEYS, sizeof(uint8_t));
+                h->fingers[num/3].weights = calloc(h->fingers[num/3].num, sizeof(uint8_t));
 		if (h->fingers[num/3].weights == NULL) {
 			return -1;
 		}
-                temp = populate_int(str, h->fingers[num/3].weights);
-                if (temp < 0 || temp != h->fingers[num/3].num) {
-                        return -1;
-                }
+                temp = populate_int(str, h->fingers[num/3].weights, h->fingers[num/3].num);
                 for (i = 0; i < temp; i++) {
                         sum += h->fingers[num/3].weights[i];
                 }
@@ -204,6 +212,11 @@ int setup_hands(struct hands * h) {
                 if (buffer[0] == '\0') {
                         continue;
                 }
+
+                if (num > 3*h->num-1) {
+                        break;
+                }
+
                 if (process(buffer, h, num) < 0) {
                        return -1;
                 }
