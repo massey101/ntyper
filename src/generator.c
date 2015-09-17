@@ -2,20 +2,7 @@
  * Author: Jack Massey
  * Email: jacknmassey@gmail.com
  * Date: 2015-07-11
- *
- * Licence:
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * Licence: See typer.c
  ******************************************************************************/
 
 
@@ -24,26 +11,7 @@
 #include<stdlib.h>
 #include<string.h>
 
-/* Defines the keys and weights for a signle finger num defines the number of
- * chracters on the key and total defines the total of the weights to save
- * calculating it every time.
- */
-struct finger {
-        char * keys;
-        uint8_t * weights;
-        uint8_t total;
-        uint8_t num;
-};
-
-/* Defines the fingers that are used and the weights for each finger.
- * num is the number of fingers and total is the total of the weights.
- */
-struct hands {
-        struct finger * fingers;
-        uint8_t * weights;
-        uint8_t total;
-        uint8_t num;
-};
+#include "generator.h"
 
 /* Helper function to skip whitespace characters
  * Arguments: buf - string to skip with
@@ -139,7 +107,7 @@ int init_hands(struct hands * h, uint8_t num_fingers) {
  */
 int process(char * buffer, struct hands * h, int num) {
         char * end, * str = buffer;
-        uint8_t num_copied, num_fingers, i, sum = 0;
+        uint8_t num_copied, i, sum = 0;
         long size;
 
         str = skip_white(str);
@@ -207,8 +175,8 @@ int process(char * buffer, struct hands * h, int num) {
  * Returns: 0 for success and -1 otherwise.(This should be made WAY more
  *          detailed in the future
  */
-int setup_hands(struct hands * h) {
-        FILE * f = fopen("example.txt", "r");
+int setup_hands(char * filename, struct hands * h) {
+        FILE * f = fopen(filename, "r");
         char buffer[1000];
         int i, num = -1;
 
@@ -285,28 +253,4 @@ void generator(char * buffer, struct hands * h)
         }
         buffer[i] = '\0';
         return;
-}
-
-/* main
- * currently just used to test the generator and setup.
- *
- */
-int main(int argc, char ** argv)
-{
-        struct hands data;
-        char buffer[6];
-        uint16_t i;
-        if (setup_hands(&data)) {
-		printf("Reading error!\n");
-		return 1;
-	}
-
-        /* do 11 tests. */
-        for (i = 0; i < 11; i++) {
-                generator(buffer, &data);
-                printf("%s ", buffer);
-        }
-        printf("\n");
-
-        return 0;
 }
