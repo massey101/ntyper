@@ -235,7 +235,7 @@ int weighted_rand(uint8_t * data, uint8_t max) {
  *            data - Contains the information of keys and weights.
  * Returns: None
  */
-void generator(char * buffer, struct hands * h)
+int generator(char * buffer, struct hands * h)
 {
         int16_t i;
         uint8_t finger = -1, key, num;
@@ -252,5 +252,5 @@ void generator(char * buffer, struct hands * h)
                 buffer[i] = h->fingers[finger].keys[key];
         }
         buffer[i] = '\0';
-        return;
+        return num;
 }

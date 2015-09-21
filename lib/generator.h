@@ -37,6 +37,6 @@ struct hands {
 /* ================================ Functions =============================== */
 
 int setup_hands(char *, struct hands *);
-void generator(char *, struct hands *);
+int generator(char *, struct hands *);
 
 #endif

@@ -8,6 +8,7 @@ LFLAGS=-Wall
 
 # Setup files
 INCLUDES=-Ilib/
+LIBS=-lncurses
 SRC_FILES := $(wildcard src/*.c)
 OBJ_FILES := $(addprefix obj/,$(notdir $(SRC_FILES:.c=.o)))
 
@@ -20,7 +21,7 @@ all: $(DIR) bin/$(NAME)
 
 # Link object files
 bin/$(NAME): $(OBJ_FILES)
-	$(CC) $(LFLAGS) -o $@ $^
+	$(CC) $(LFLAGS) -o $@ $^ $(LIBS)
 
 # Compile each object file
 obj/%.o: src/%.c
