@@ -34,7 +34,7 @@
  */
 void run(struct hands * data)
 {
-        char buffer[6*NUM_OF_TESTS], ch;
+        char buffer[MAX_LEN*NUM_OF_TESTS+1], ch;
         uint16_t i, j = 0;
 
         for (i = 0; i < NUM_OF_TESTS-1; i++) {

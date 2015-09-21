@@ -10,6 +10,10 @@
 #ifndef GENERATOR_H
 #define GENERATOR_H
 
+/* ================================= Defines ================================ */
+#define MIN_LEN 5
+#define MAX_LEN 20
+
 /* =============================== Data structs ============================= */
 
 /* Defines the keys and weights for a signle finger num defines the number of

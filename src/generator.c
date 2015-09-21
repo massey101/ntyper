@@ -229,8 +229,8 @@ int weighted_rand(uint8_t * data, uint8_t max) {
 
 
 /* Generates a random sequence. The sequence will all be on the same finger, of a
- * random length between 2 and 5. and taking into account the respective weights
- * of keys and fingers.
+ * random length between MIN_LEN and MAX_LEN. and taking into account the
+ * respective weights of keys and fingers.
  * Arguments: buffer - Sequence will return here. Minimum length of 6.
  *            data - Contains the information of keys and weights.
  * Returns: None
@@ -243,7 +243,7 @@ int generator(char * buffer, struct hands * h)
         finger = weighted_rand(h->weights, h->total);
 
         // Choose a number of keys
-        num = rand() % 4 + 2;
+        num = rand() % (MAX_LEN - MIN_LEN) + MIN_LEN;
 
         // Choose some keys
         for (i = 0; i < num; i++) {
