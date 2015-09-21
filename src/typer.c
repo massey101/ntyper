@@ -23,10 +23,28 @@
 #include <ncurses.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "generator.h"
 
 #define NUM_OF_TESTS 10
+#define DEFAULT_FILE "example.txt"
+
+char * parse_cli(int argc, char ** argv)
+{
+        char * filename;
+        if (argc == 1) {
+                filename = malloc(strlen(DEFAULT_FILE)+1);
+                strcpy(filename, DEFAULT_FILE);
+        } else if (argc == 2) {
+                filename = malloc(strlen(argv[1])+1);
+                strcpy(filename, argv[1]);
+        } else {
+                return NULL;
+        }
+
+        return filename;
+}
 
 /* Populates a line of randomly generated characters and gets the user to
  * reproduce them.
@@ -64,18 +82,22 @@ void run(struct hands * data)
 int main(int argc, char ** argv)
 {
         struct hands data;
+        char * filename;
 
         srand(time(NULL));
+        if ((filename = parse_cli(argc, argv)) == NULL) {
+                printf("Usage: ntyper [filename]\n");
+                return 1;
+        }
+
+        if (setup_hands(filename, &data)) {
+                printf("Reading error!\n");
+                return 1;
+        }
 
         initscr();
         cbreak();
         noecho();
-
-        if (setup_hands("example.txt", &data)) {
-                printf("Reading error!\n");
-                endwin();
-                return 1;
-        }
 
         while(1) {
                 run(&data);
