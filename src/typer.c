@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <ncurses.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include "generator.h"
 
@@ -62,6 +64,9 @@ void run(struct hands * data)
 int main(int argc, char ** argv)
 {
         struct hands data;
+
+        srand(time(NULL));
+
         initscr();
         cbreak();
         noecho();
